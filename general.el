@@ -1490,7 +1490,7 @@ If X and Y are conses, the first element will be compared. Ordering is based on
 (defun general--print-map (map)
   "Print the keybinding MAP."
   (cl-destructuring-bind (key command previous) map
-    (princ (format "|=%.50s=|~%.50s~|~%.50s~|\n"
+    (princ (format "|~%.50s~|=%.50s=|=%.50s=|\n"
                    (replace-regexp-in-string "|" "¦" (key-description key))
                    command
                    previous))))
@@ -1499,7 +1499,7 @@ If X and Y are conses, the first element will be compared. Ordering is based on
   "Print an org table for MAPS."
   (when general-describe-keybinding-sort-function
     (setq maps (funcall general-describe-keybinding-sort-function maps)))
-  (princ "|key|command|previous|\n|-+-|\n")
+  (princ "|Key|Command|Previous|\n|-+-|\n")
   (dolist (map maps)
     (general--print-map map))
   (princ "\n"))
