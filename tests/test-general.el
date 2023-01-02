@@ -880,6 +880,27 @@ Return t if successful or a cons corresponding to the failed key and def."
               "d" #'d))
     (expect (general-test-keys 'normal general-temp-map
               "e" #'e)))
+  (it "should work with multiple :general statements"
+    (use-package some-package
+      :ensure nil
+      :general
+      (:keymaps 'general-temp-map
+       "a" #'a)
+      :general
+      ("b" "b" :keymaps 'general-temp-map)
+      :general
+      ("c" #'c :keymaps 'general-temp-map)
+      :general
+      (general-temp-map "d" #'d)
+      :general
+      ('normal general-temp-map "e" #'e))
+    (expect (general-test-keys nil general-temp-map
+                               "a" #'a
+                               "b" "b"
+                               "c" #'c
+                               "d" #'d))
+    (expect (general-test-keys 'normal general-temp-map
+                               "e" #'e)))
   (xit "should support any definer when it is manually specified"
     (expect (and (fboundp 'general-nmap)
                  (macrop 'general-nmap)))
@@ -897,35 +918,50 @@ Return t if successful or a cons corresponding to the failed key and def."
     (expect (general-test-keys 'normal general-temp-map
               "a" #'a)))
   (it "should correctly extract definitions from general definer arglists"
-    (expect (plist-get (use-package-normalize/:general
-                        nil
-                        nil
-                        '((general-def "key" #'command)))
-                       :commands)
-            :to-equal '(command))
-    (expect (plist-get (use-package-normalize/:general
-                        nil
-                        nil
-                        '((general-def 'normal "key" #'command)))
-                       :commands)
-            :to-equal '(command))
-    (expect (plist-get (use-package-normalize/:general
-                        nil
-                        nil
-                        '((general-def 'normal general-temp-map
-                            "key" #'command)))
-                       :commands)
-            :to-equal '(command))
-    (expect (plist-get (use-package-normalize/:general
-                        nil
-                        nil
-                        '((general-defs
-                            'normal
-                            "key1" #'command1
-                            'visual
-                            "key2" #'command2)))
-                       :commands)
-            :to-equal '(command1 command2)))
+    (expect (use-package-autoloads/:general
+             nil
+             nil
+             '((general-def "key" #'command)))
+            :to-equal '((command . command)))
+    (expect (use-package-autoloads/:general
+             nil
+             nil
+             '((general-def 'normal "key" #'command)))
+            :to-equal '((command . command)))
+    (expect (use-package-autoloads/:general
+             nil
+             nil
+             '((general-def 'normal general-temp-map
+                 "key" #'command)))
+            :to-equal '((command . command)))
+    (expect (use-package-autoloads/:general
+             nil
+             nil
+             '((general-defs
+                 'normal
+                 "key1" #'command1
+                 'visual
+                 "key2" #'command2)))
+            :to-equal '((command1 . command)
+                        (command2 . command))))
+  (it "should extract definitions from multiple :general statements"
+    (expect (use-package-autoloads/:general
+             nil
+             nil
+             '((general-defs "key1" #'command1)
+               (general-defs "key2" #'command2)))
+            :to-equal '((command1 . command)
+                        (command2 . command))))
+  (it "should extract symbols depending on general-use-package-emit-autoloads"
+    (expect (use-package-autoloads/:general
+             nil nil
+             '((general-def "key" #'command)))
+            :to-equal '((command . command)))
+    (let (general-use-package-emit-autoloads)
+      (expect (use-package-autoloads/:general
+               nil nil
+               '((general-def "key" #'command)))
+              :to-equal nil)))
   (it "should correctly extract symbols/commands to create autoloads from"
     (expect (general--extract-autoloadable-symbol nil)
             :to-be nil)
@@ -997,6 +1033,32 @@ Return t if successful or a cons corresponding to the failed key and def."
             :to-equal 'general-describe-keybindings)
     (expect (general--extract-autoloadable-symbol
              '(:def (fake-map . "char")))
+            :to-equal nil))
+  (it "should not extract autoloads when :no-autoload t is specified globally"
+    (expect (use-package-autoloads/:general
+             nil nil
+             (use-package-normalize/:general
+              nil
+              nil
+              '((general-def :no-autoload t "key" #'command))))
+            :to-equal nil)
+    ;; it should be local to the current :general form
+    (expect (use-package-autoloads/:general
+             nil nil
+             (use-package-normalize/:general
+              nil
+              nil
+              '((general-def "key" #'command-1)
+                (general-def :no-autoload t "key" #'command-2)
+                (general-def "key" #'command-3))))
+            :to-equal
+            '((command-1 . command) (command-3 . command))))
+  (it "should not extract autoloads when :no-autoload t is specified locally"
+    (expect (general--extract-autoloadable-symbol
+             '(symbol/command :wk "replacement" :no-autoload t))
+            :to-equal nil)
+    (expect (general--extract-autoloadable-symbol
+             '(:def symbol/command :wk "replacement" :no-autoload t))
             :to-equal nil)))
 
 ;; *** :ghook
