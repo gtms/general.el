@@ -112,7 +112,7 @@ Non-evil users should keep this nil."
                         "This functionality will be removed in the future."
                         "2018-01-21")
 
-(defcustom general-non-normal-states '(insert emacs hybrid iedit-insert)
+(defcustom general-non-normal-states '(insert replace emacs hybrid iedit-insert)
   "List of \"non-normal\" evil states (used with :non-normal-prefix). When
   :states is not specified (only :keymaps), these will automatically be expanded
   to their full global evil keymap equivalents."
@@ -1507,10 +1507,14 @@ If X and Y are conses, the first element will be compared. Ordering is based on
 (defun general--print-map (map)
   "Print the keybinding MAP."
   (cl-destructuring-bind (key command previous) map
-    (princ (format "|~%.50s~|=%.50s=|=%.50s=|\n"
-                   (replace-regexp-in-string "|" "¦" (key-description key))
-                   command
-                   previous))))
+    (princ (concat
+            (replace-regexp-in-string
+             "\n" ""
+             (format "|~%.50s~|=%.50s=|=%.50s=|"
+                     (replace-regexp-in-string "|" "¦" (key-description key))
+                     command
+                     previous))
+            "\n"))))
 
 (defun general--print-maps-table (maps)
   "Print an org table for MAPS."
